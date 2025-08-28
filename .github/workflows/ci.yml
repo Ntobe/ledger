@@ -35,7 +35,7 @@ jobs:
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-      working-directory: transfer-service
+      working-directory: ledger
 
     - name: Build with Gradle Wrapper
       run: ./gradlew build
