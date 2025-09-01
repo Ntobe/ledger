@@ -75,8 +75,8 @@ class LedgerServiceTest {
     void testAccountBalanceUpdate() throws Exception {
         // given
         when(ledgerRepo.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(List.of()));
-        when(accountRepo.findById(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
-        when(accountRepo.findById(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
+        when(accountRepo.findByIdForUpdate(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
+        when(accountRepo.findByIdForUpdate(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
 
         // when
         ledgerService.applyTransfer(request);
@@ -100,8 +100,8 @@ class LedgerServiceTest {
     void testLedgerEntriesUpdate() throws Exception {
         // given
         when(ledgerRepo.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(List.of()));
-        when(accountRepo.findById(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
-        when(accountRepo.findById(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
+        when(accountRepo.findByIdForUpdate(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
+        when(accountRepo.findByIdForUpdate(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
 
         // when
         ledgerService.applyTransfer(request);
@@ -131,8 +131,8 @@ class LedgerServiceTest {
         // given
         fromAccount.setBalance(BigDecimal.valueOf(10));
         when(ledgerRepo.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(List.of()));
-        when(accountRepo.findById(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
-        when(accountRepo.findById(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
+        when(accountRepo.findByIdForUpdate(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
+        when(accountRepo.findByIdForUpdate(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
 
         // when then
         assertThrows(InsufficientFundsException.class, () -> ledgerService.applyTransfer(request));

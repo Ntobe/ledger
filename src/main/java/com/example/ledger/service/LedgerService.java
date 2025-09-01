@@ -18,8 +18,8 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class LedgerService {
-    private final AccountRepository accountRepo;
-    private final LedgerEntryRepository ledgerRepo;
+    private final AccountRepository accountRepository;
+    private final LedgerEntryRepository ledgerRepository;
 
 
     @Transactional
@@ -28,10 +28,22 @@ public class LedgerService {
             return;
         }
 
-        Account fromAccount = accountRepo.findById(request.fromAccountId())
-                .orElseThrow(() -> new EntityNotFoundException("From account not found"));
-        Account toAccount = accountRepo.findById(request.toAccountId())
-                .orElseThrow(() -> new EntityNotFoundException("To account not found"));
+        Long fromId = request.fromAccountId();
+        Long toId = request.toAccountId();
+
+        // Always lock in consistent order
+        Long firstId = (fromId < toId) ? fromId : toId;
+        Long secondId = (fromId < toId) ? toId : fromId;
+
+        Account firstAccount = accountRepository.findByIdForUpdate(firstId)
+                .orElseThrow(() -> new EntityNotFoundException("Account " + firstId + " not found"));
+
+        Account secondAccount = accountRepository.findByIdForUpdate(secondId)
+                .orElseThrow(() -> new EntityNotFoundException("Account " + secondId + " not found"));
+
+        // Map back to from/to
+        Account fromAccount = (firstAccount.getId().equals(fromId)) ? firstAccount : secondAccount;
+        Account toAccount   = (firstAccount.getId().equals(toId))   ? firstAccount : secondAccount;
 
         if (!hasSufficientFunds(fromAccount, request.amount())) {
             throw new InsufficientFundsException();
@@ -42,15 +54,15 @@ public class LedgerService {
     }
 
     private void saveLedgerEntries(TransferRequest request, Account fromAccount, Account toAccount) {
-        ledgerRepo.save(new LedgerEntry(request.transferId(), fromAccount.getId(), request.amount(), EntryType.DEBIT, LocalDateTime.now()));
-        ledgerRepo.save(new LedgerEntry(request.transferId(), toAccount.getId(), request.amount(), EntryType.CREDIT, LocalDateTime.now()));
+        ledgerRepository.save(new LedgerEntry(request.transferId(), fromAccount.getId(), request.amount(), EntryType.DEBIT, LocalDateTime.now()));
+        ledgerRepository.save(new LedgerEntry(request.transferId(), toAccount.getId(), request.amount(), EntryType.CREDIT, LocalDateTime.now()));
     }
 
     private void updateBalances(TransferRequest request, Account fromAccount, Account toAccount) {
         fromAccount.setBalance(fromAccount.getBalance().subtract(request.amount()));
         toAccount.setBalance(toAccount.getBalance().add(request.amount()));
-        accountRepo.save(fromAccount);
-        accountRepo.save(toAccount);
+        accountRepository.save(fromAccount);
+        accountRepository.save(toAccount);
     }
 
     private static boolean hasSufficientFunds(Account account, BigDecimal amount) {
@@ -58,8 +70,8 @@ public class LedgerService {
     }
 
     private boolean isTransferIdProcessed(TransferRequest request) {
-        return ledgerRepo.findByTransferId(request.transferId()).isPresent() &&
-                !ledgerRepo.findByTransferId(request.transferId()).get().isEmpty();
+        return ledgerRepository.findByTransferId(request.transferId()).isPresent() &&
+                !ledgerRepository.findByTransferId(request.transferId()).get().isEmpty();
     }
 }
 
