@@ -19,5 +19,4 @@ public class Account {
     private Long id;
     @Column(nullable = false)
     BigDecimal balance;
-    private Long version;
 }

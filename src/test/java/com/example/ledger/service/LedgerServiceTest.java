@@ -2,7 +2,7 @@ package com.example.ledger.service;
 
 import com.example.ledger.dto.TransferRequest;
 import com.example.ledger.dto.TransferResponse;
-import com.example.ledger.exception.InsufficientFundsException;
+import com.example.ledger.exception.AccountNotFoundException;
 import com.example.ledger.model.Account;
 import com.example.ledger.model.EntryType;
 import com.example.ledger.model.LedgerEntry;
@@ -23,7 +23,6 @@ import org.mockito.Mock;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -172,21 +171,21 @@ class LedgerServiceTest {
     @DisplayName("Given a transfer request with a new transferId, " +
             "and from account ID is not found, " +
             "when applyTransfer is invoked, " +
-            "then EntityNotFoundException should be thrown.")
+            "then AccountNotFoundException should be thrown.")
     void fromAccountNotFound() {
         // given
         when(transferRepository.findByTransferId(TRANSFER_ID)).thenReturn(Optional.empty());
         when(accountRepository.findById(FROM_ACCOUNT_ID)).thenReturn(Optional.empty());
 
         // when then
-        assertThrows(EntityNotFoundException.class, () -> ledgerService.applyTransfer(request));
+        assertThrows(AccountNotFoundException.class, () -> ledgerService.applyTransfer(request));
     }
 
     @Test
     @DisplayName("Given a transfer request with a new transferId, " +
             "and to account ID is not found, " +
             "when applyTransfer is invoked, " +
-            "then EntityNotFoundException should be thrown.")
+            "then AccountNotFoundException should be thrown.")
     void toAccountNotFound() {
         // given
         when(transferRepository.findByTransferId(TRANSFER_ID)).thenReturn(Optional.empty());
@@ -194,6 +193,6 @@ class LedgerServiceTest {
         when(accountRepository.findById(TO_ACCOUNT_ID)).thenReturn(Optional.empty());
 
         // when then
-        assertThrows(EntityNotFoundException.class, () -> ledgerService.applyTransfer(request));
+        assertThrows(AccountNotFoundException.class, () -> ledgerService.applyTransfer(request));
     }
 }

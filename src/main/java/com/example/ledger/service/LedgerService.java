@@ -2,6 +2,7 @@ package com.example.ledger.service;
 
 import com.example.ledger.dto.TransferRequest;
 import com.example.ledger.dto.TransferResponse;
+import com.example.ledger.exception.AccountNotFoundException;
 import com.example.ledger.model.Account;
 import com.example.ledger.model.EntryType;
 import com.example.ledger.model.LedgerEntry;
@@ -41,10 +42,10 @@ public class LedgerService {
         Long secondId = (fromId < toId) ? toId : fromId;
 
         Account firstAccount = accountRepository.findByIdForUpdate(firstId)
-                .orElseThrow(() -> new EntityNotFoundException("Account " + firstId + " not found"));
+                .orElseThrow(() -> new AccountNotFoundException(firstId));
 
         Account secondAccount = accountRepository.findByIdForUpdate(secondId)
-                .orElseThrow(() -> new EntityNotFoundException("Account " + secondId + " not found"));
+                .orElseThrow(() -> new AccountNotFoundException(secondId));
 
         // Map back to from/to
         Account fromAccount = (firstAccount.getId().equals(fromId)) ? firstAccount : secondAccount;
