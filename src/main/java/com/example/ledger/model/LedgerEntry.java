@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Immutable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -19,6 +20,7 @@ import java.time.LocalDateTime;
 @Table(uniqueConstraints = @UniqueConstraint(columnNames = {"transferId", "accountId"}))
 @NoArgsConstructor
 @Getter
+@Immutable
 public class LedgerEntry {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

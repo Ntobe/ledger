@@ -1,12 +1,16 @@
 package com.example.ledger.service;
 
 import com.example.ledger.dto.TransferRequest;
+import com.example.ledger.dto.TransferResponse;
 import com.example.ledger.exception.InsufficientFundsException;
 import com.example.ledger.model.Account;
 import com.example.ledger.model.EntryType;
 import com.example.ledger.model.LedgerEntry;
+import com.example.ledger.model.Transfer;
+import com.example.ledger.model.TransferStatus;
 import com.example.ledger.repository.AccountRepository;
 import com.example.ledger.repository.LedgerEntryRepository;
+import com.example.ledger.repository.TransferRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,12 +39,17 @@ class LedgerServiceTest {
     private static final BigDecimal TO_ACCOUNT_BALANCE = BigDecimal.valueOf(50);
     private static final String TRANSFER_ID = "tx-123";
     private static final BigDecimal TRANSFER_AMOUNT = BigDecimal.valueOf(40);
+    private static final String TRANSFER_SUCCESS_MESSAGE = "Transfer successful";
+    private static final String INSUFFICIENT_FUNDS__MESSAGE = "Account has insufficient funds";
 
     @Mock
-    private AccountRepository accountRepo;
+    private AccountRepository accountRepository;
 
     @Mock
-    private LedgerEntryRepository ledgerRepo;
+    private LedgerEntryRepository ledgerEntryRepository;
+
+    @Mock
+    private TransferRepository transferRepository;
 
     @Captor
     private ArgumentCaptor<Account> accountCaptor;
@@ -72,17 +81,17 @@ class LedgerServiceTest {
             "and from account has sufficient funds, " +
             "when applyTransfer is invoked, " +
             "then the account balances should be updated correctly.")
-    void testAccountBalanceUpdate() throws Exception {
+    void testAccountBalanceUpdate() {
         // given
-        when(ledgerRepo.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(List.of()));
-        when(accountRepo.findByIdForUpdate(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
-        when(accountRepo.findByIdForUpdate(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
+        when(transferRepository.findByTransferId(TRANSFER_ID)).thenReturn(Optional.empty());
+        when(accountRepository.findByIdForUpdate(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
+        when(accountRepository.findByIdForUpdate(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
 
         // when
         ledgerService.applyTransfer(request);
 
         // then
-        verify(accountRepo, times(2)).save(accountCaptor.capture());
+        verify(accountRepository, times(2)).save(accountCaptor.capture());
 
         List<Account> savedAccounts = accountCaptor.getAllValues();
         assertEquals(2, savedAccounts.size());
@@ -97,17 +106,17 @@ class LedgerServiceTest {
             "and from account has sufficient funds, " +
             "when applyTransfer is invoked, " +
             "then the account ledger entries should be saved correctly.")
-    void testLedgerEntriesUpdate() throws Exception {
+    void testLedgerEntriesUpdate() {
         // given
-        when(ledgerRepo.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(List.of()));
-        when(accountRepo.findByIdForUpdate(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
-        when(accountRepo.findByIdForUpdate(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
+        when(transferRepository.findByTransferId(TRANSFER_ID)).thenReturn(Optional.empty());
+        when(accountRepository.findByIdForUpdate(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
+        when(accountRepository.findByIdForUpdate(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
 
         // when
         ledgerService.applyTransfer(request);
 
         // then
-        verify(ledgerRepo, times(2)).save(ledgerEntryCaptor.capture());
+        verify(ledgerEntryRepository, times(2)).save(ledgerEntryCaptor.capture());
 
         List<LedgerEntry> savedLedgerEntries = ledgerEntryCaptor.getAllValues();
         assertEquals(2, savedLedgerEntries.size());
@@ -130,34 +139,33 @@ class LedgerServiceTest {
     void testInsufficientFunds() {
         // given
         fromAccount.setBalance(BigDecimal.valueOf(10));
-        when(ledgerRepo.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(List.of()));
-        when(accountRepo.findByIdForUpdate(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
-        when(accountRepo.findByIdForUpdate(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
+        when(transferRepository.findByTransferId(TRANSFER_ID)).thenReturn(Optional.empty());
+        when(accountRepository.findByIdForUpdate(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
+        when(accountRepository.findByIdForUpdate(TO_ACCOUNT_ID)).thenReturn(Optional.of(toAccount));
 
         // when then
-        assertThrows(InsufficientFundsException.class, () -> ledgerService.applyTransfer(request));
+        TransferResponse result = ledgerService.applyTransfer(request);
+
+        assertEquals(INSUFFICIENT_FUNDS__MESSAGE, result.message());
+        assertEquals(TransferStatus.FAILURE, result.status());
     }
 
     @Test
     @DisplayName("Given a transfer request with an existing transferId, " +
             "when applyTransfer is invoked, " +
             "then should not process the transfer.")
-    void testExistingTransferId() throws InsufficientFundsException {
+    void testExistingTransferId() {
         // given
-        LedgerEntry entry = new LedgerEntry(TRANSFER_ID,
-                FROM_ACCOUNT_ID,
-                FROM_ACCOUNT_BALANCE,
-                EntryType.DEBIT,
-                LocalDateTime.now());
-        when(ledgerRepo.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(List.of(entry)));
+        Transfer existingTransfer = new Transfer(TRANSFER_ID, TransferStatus.SUCCESS, TRANSFER_SUCCESS_MESSAGE);
+        when(transferRepository.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(existingTransfer));
 
         // when
         ledgerService.applyTransfer(request);
 
         // then
-        verify(accountRepo, never()).findById(anyLong());
-        verify(accountRepo, never()).save(any());
-        verify(ledgerRepo, never()).save(any());
+        verify(accountRepository, never()).findById(anyLong());
+        verify(accountRepository, never()).save(any());
+        verify(ledgerEntryRepository, never()).save(any());
     }
 
     @Test
@@ -167,8 +175,8 @@ class LedgerServiceTest {
             "then EntityNotFoundException should be thrown.")
     void fromAccountNotFound() {
         // given
-        when(ledgerRepo.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(List.of()));
-        when(accountRepo.findById(FROM_ACCOUNT_ID)).thenReturn(Optional.empty());
+        when(transferRepository.findByTransferId(TRANSFER_ID)).thenReturn(Optional.empty());
+        when(accountRepository.findById(FROM_ACCOUNT_ID)).thenReturn(Optional.empty());
 
         // when then
         assertThrows(EntityNotFoundException.class, () -> ledgerService.applyTransfer(request));
@@ -181,9 +189,9 @@ class LedgerServiceTest {
             "then EntityNotFoundException should be thrown.")
     void toAccountNotFound() {
         // given
-        when(ledgerRepo.findByTransferId(TRANSFER_ID)).thenReturn(Optional.of(List.of()));
-        when(accountRepo.findById(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
-        when(accountRepo.findById(TO_ACCOUNT_ID)).thenReturn(Optional.empty());
+        when(transferRepository.findByTransferId(TRANSFER_ID)).thenReturn(Optional.empty());
+        when(accountRepository.findById(FROM_ACCOUNT_ID)).thenReturn(Optional.of(fromAccount));
+        when(accountRepository.findById(TO_ACCOUNT_ID)).thenReturn(Optional.empty());
 
         // when then
         assertThrows(EntityNotFoundException.class, () -> ledgerService.applyTransfer(request));

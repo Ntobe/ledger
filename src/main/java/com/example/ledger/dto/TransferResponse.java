@@ -1,4 +1,6 @@
 package com.example.ledger.dto;
 
-public record TransferResponse(String status, String message) {
+import com.example.ledger.model.TransferStatus;
+
+public record TransferResponse(TransferStatus status, String message) {
 }
