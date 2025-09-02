@@ -1,8 +1,8 @@
 package com.example.ledger.service;
 
+import com.example.ledger.exception.AccountNotFoundException;
 import com.example.ledger.model.Account;
 import com.example.ledger.repository.AccountRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +21,7 @@ public class AccountService {
 
     public Account getAccount(Long id) {
         return accountRepo.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Account not found"));
+                .orElseThrow(() -> new AccountNotFoundException(id));
     }
 }
 

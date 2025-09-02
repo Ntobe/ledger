@@ -2,6 +2,7 @@ package com.example.ledger.controller;
 
 import com.example.ledger.dto.TransferRequest;
 import com.example.ledger.dto.TransferResponse;
+import com.example.ledger.model.TransferStatus;
 import com.example.ledger.service.LedgerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,10 +21,10 @@ public class LedgerController {
     @PostMapping("/transfer")
     public ResponseEntity<TransferResponse> transfer(@RequestBody TransferRequest request) {
         try {
-            ledgerService.applyTransfer(request);
-            return ResponseEntity.ok(new TransferResponse("SUCCESS","Transfer successful"));
+            TransferResponse response = ledgerService.applyTransfer(request);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new TransferResponse("FAILURE", "Transfer failed: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new TransferResponse(TransferStatus.FAILURE, e.getMessage()));
         }
     }
 }
