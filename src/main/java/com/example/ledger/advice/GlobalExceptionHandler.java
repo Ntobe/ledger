@@ -1,5 +1,6 @@
-package com.example.ledger.exception;
+package com.example.ledger.advice;
 
+import com.example.ledger.exception.AccountNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
