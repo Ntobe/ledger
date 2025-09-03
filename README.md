@@ -29,14 +29,12 @@ The service provides OpenAPI/Swagger documentation, but only when running with t
 
 Use this documentation to explore all available endpoints, request/response formats, and example payloads.
 When running in prod or other profiles, Swagger UI and API docs are disabled for security reasons.
-To access Swagger locally, start the application with the dev profile:
+To access Swagger locally, start the application with the dev profile.
 
 ## Startup Instructions
 ### Prerequisites
 
-Java 21+
-
-Gradle
+Java 21
 
 ## Running Locally (H2)
 
@@ -74,7 +72,7 @@ From the project root, run:
 ````
    docker run -p 8081:8081 -e SPRING_PROFILES_ACTIVE=dev ledger-server
 ````
-- -p 8080:8080 exposes the application on localhost:8080
+- -p 8081:8081 exposes the application on localhost:8081
 
 - SPRING_PROFILES_ACTIVE=dev enables the Swagger UI
 
